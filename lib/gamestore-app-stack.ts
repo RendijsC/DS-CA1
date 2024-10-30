@@ -1,16 +1,29 @@
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdanode from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 
-export class GamestoreAppStack extends cdk.Stack {
+import { Construct } from 'constructs';
+
+export class GameStoreAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const gamestoreFn = new lambdanode.NodejsFunction(this, "GameStoreFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/gamestore.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'GamestoreAppQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const gamestoreFnURL = gamestoreFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.AWS_IAM,
+      cors: {
+        allowedOrigins: ["*"],
+      },
+    });
+
+    new cdk.CfnOutput(this, "GameStore Function Url", { value: gamestoreFnURL.url });
+
   }
 }
