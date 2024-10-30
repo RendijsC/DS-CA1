@@ -51,6 +51,33 @@ export class GameStoreAppStack extends cdk.Stack {
       }),
     });
 
+    const getGameByIdFn = new lambdanode.NodejsFunction(
+      this,
+      "GetGameByIdFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getGameById.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: gamesTable.tableName,
+          REGION: 'eu-west-1',
+        },
+      }
+    );
+
+    const getGameByIdURL = getGameByIdFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+      },
+    });
+
+    gamesTable.grantReadData(getGameByIdFn)
+
+    new cdk.CfnOutput(this, "Get Game Function Url", { value: getGameByIdURL.url });
+
 
 
     new cdk.CfnOutput(this, "GameStore Function Url", { value: gamestoreFnURL.url });
