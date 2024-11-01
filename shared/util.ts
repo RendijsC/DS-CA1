@@ -1,16 +1,19 @@
 import { marshall } from "@aws-sdk/util-dynamodb";
-import { Game } from "./types";
+import { Game, GameDeveloper } from "./types";
 
-export const generateGameItem = (game: Game) => {
+type Entity = Game | GameDeveloper; 
+export const generateItem = (entity: Entity) => {
   return {
     PutRequest: {
-      Item: marshall(game),
-    },
-  };
+      Item: marshall(entity),
+ },
+ };
 };
 
-export const generateBatch = (data: Game[]) => {
+export const generateBatch = (data: Entity[]) => {
   return data.map((e) => {
-    return generateGameItem(e);
-  });
+    return generateItem(e);
+ });
 };
+
+
