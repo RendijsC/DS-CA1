@@ -174,11 +174,30 @@ export class GameStoreAppStack extends cdk.Stack {
       new apig.LambdaIntegration(getGameDevelopersFn, { proxy: true })
     );
     
-    new cdk.CfnOutput(this, "API Gateway URL", { value: api.url });
+    new cdk.CfnOutput(this, "GameStoreAPI Gateway URL", { value: api.url });
+
+    const addGameFn = new lambdanode.NodejsFunction(this, "AddGameFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/addGame.ts`, 
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: gamesTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
 
     
+    gamesTable.grantReadWriteData(addGameFn);
 
+    
+    gamesEndpoint.addMethod(
+      "POST",
+      new apig.LambdaIntegration(addGameFn, { proxy: true })
+    );
 
+    
 
 
 
