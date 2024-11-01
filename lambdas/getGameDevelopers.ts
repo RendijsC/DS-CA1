@@ -1,33 +1,24 @@
+
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   QueryCommand,
-  QueryCommandInput,
+  GetCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDocumentClient();
 
-export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
-    console.log("Event: ", JSON.stringify(event));
     const queryParams = event.queryStringParameters;
 
-    
-    if (!queryParams) {
+   
+    if (!queryParams || !queryParams.gameId) {
       return {
         statusCode: 400,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: "Missing query parameters" }),
-      };
-    }
-
-    
-    if (!queryParams.gameId) {
-      return {
-        statusCode: 400,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: "Missing gameId parameter" }),
+        body: JSON.stringify({ message: "Missing required gameId" }),
       };
     }
 
@@ -40,46 +31,44 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
       };
     }
 
-    
-    let commandInput: QueryCommandInput = {
-      TableName: process.env.CAST_TABLE_NAME,
-      KeyConditionExpression: "gameId = :g",
-      ExpressionAttributeValues: {
-        ":g": gameId,
-      },
-    };
+    const includeFacts = queryParams.facts === "true";
+
+   
+    const developersResponse = await ddbDocClient.send(
+      new QueryCommand({
+        TableName: process.env.GAME_DEVELOPER_TABLE_NAME,
+        KeyConditionExpression: "gameId = :g",
+        ExpressionAttributeValues: { ":g": gameId },
+      })
+    );
+    const developers = developersResponse.Items;
 
     
-    if (queryParams.roleName) {
-      commandInput = {
-        ...commandInput,
-        IndexName: "roleIx",
-        KeyConditionExpression: "gameId = :g and begins_with(roleName, :r)",
-        ExpressionAttributeValues: {
-          ":g": gameId,
-          ":r": queryParams.roleName,
-        },
-      };
-    } else if (queryParams.developerName) {
-      commandInput = {
-        ...commandInput,
-        IndexName: "roleIx",
-        KeyConditionExpression: "gameId = :g and begins_with(developerName, :d)",
-        ExpressionAttributeValues: {
-          ":g": gameId,
-          ":d": queryParams.developerName,
-        },
+    if (includeFacts) {
+      const gameResponse = await ddbDocClient.send(
+        new GetCommand({
+          TableName: process.env.GAMES_TABLE_NAME,
+          Key: { id: gameId }, 
+          ProjectionExpression: "title, release_year, description",
+        })
+      );
+      const gameDetails = gameResponse.Item;
+
+      return {
+        statusCode: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          developers,
+          gameDetails: gameDetails || null,
+        }),
       };
     }
 
     
-    const commandOutput = await ddbDocClient.send(new QueryCommand(commandInput));
-
-    // Return the results
     return {
       statusCode: 200,
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ data: commandOutput.Items }),
+      body: JSON.stringify({ developers }),
     };
   } catch (error: any) {
     console.log(JSON.stringify(error));
@@ -91,16 +80,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
   }
 };
 
+
 function createDocumentClient() {
   const ddbClient = new DynamoDBClient({ region: process.env.REGION });
-  const marshallOptions = {
-    convertEmptyValues: true,
-    removeUndefinedValues: true,
-    convertClassInstanceToMap: true,
-  };
-  const unmarshallOptions = {
-    wrapNumbers: false,
-  };
-  const translateConfig = { marshallOptions, unmarshallOptions };
-  return DynamoDBDocumentClient.from(ddbClient, translateConfig);
+  return DynamoDBDocumentClient.from(ddbClient, {
+    marshallOptions: {
+      convertEmptyValues: true,
+      removeUndefinedValues: true,
+      convertClassInstanceToMap: true,
+    },
+    unmarshallOptions: { wrapNumbers: false },
+  });
 }

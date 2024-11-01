@@ -1,29 +1,16 @@
-import * as cdk from 'aws-cdk-lib';
-import * as lambdanode from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+
+import * as cdk from "aws-cdk-lib";
+import * as lambdanode from "aws-cdk-lib/aws-lambda-nodejs";
+import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as custom from "aws-cdk-lib/custom-resources";
+import { Construct } from "constructs";
 import { generateBatch } from "../shared/util";
 import { games, gameDevelopers } from "../seed/games";
-import { Construct } from 'constructs';
 
 export class GameStoreAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
-    
-    const gamestoreFn = new lambdanode.NodejsFunction(this, "GameStoreFn", {
-      architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_18_X,
-      entry: `${__dirname}/../lambdas/gamestore.ts`,
-      timeout: cdk.Duration.seconds(10),
-      memorySize: 128,
-    });
-
-    const gamestoreFnURL = gamestoreFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.AWS_IAM,
-      cors: { allowedOrigins: ["*"] },
-    });
 
     
     const gamesTable = new dynamodb.Table(this, "GamesTable", {
@@ -67,6 +54,23 @@ export class GameStoreAppStack extends cdk.Stack {
     });
 
     
+    const gamestoreFn = new lambdanode.NodejsFunction(this, "GameStoreFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/gamestore.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+    });
+
+    const gamestoreFnURL = gamestoreFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.AWS_IAM,
+      cors: { allowedOrigins: ["*"] },
+    });
+
+    
+    new cdk.CfnOutput(this, "GameStore Function Url", { value: gamestoreFnURL.url });
+
+    
     const getGameByIdFn = new lambdanode.NodejsFunction(this, "GetGameByIdFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -88,9 +92,6 @@ export class GameStoreAppStack extends cdk.Stack {
 
     
     new cdk.CfnOutput(this, "Get Game Function Url", { value: getGameByIdURL.url });
-
-    
-    new cdk.CfnOutput(this, "GameStore Function Url", { value: gamestoreFnURL.url });
 
     
     const getAllGamesFn = new lambdanode.NodejsFunction(this, "GetAllGamesFn", {
@@ -123,7 +124,8 @@ export class GameStoreAppStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(10),
       memorySize: 128,
       environment: {
-        CAST_TABLE_NAME: gameDeveloperTable.tableName,
+        GAME_DEVELOPER_TABLE_NAME: gameDeveloperTable.tableName,
+        GAMES_TABLE_NAME: gamesTable.tableName,
         REGION: 'eu-west-1',
       },
     });
@@ -134,7 +136,9 @@ export class GameStoreAppStack extends cdk.Stack {
     });
 
     gameDeveloperTable.grantReadData(getGameDevelopersFn);
+    gamesTable.grantReadData(getGameDevelopersFn);
 
+    
     new cdk.CfnOutput(this, 'Get Game Developers Url', { value: getGameDevelopersURL.url });
   }
 }
