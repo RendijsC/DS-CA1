@@ -1,15 +1,17 @@
 import { Handler } from "aws-lambda";
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-// Initialization
+import { APIGatewayProxyHandlerV2 } from "aws-lambda";
+
 const ddbDocClient = createDDbDocClient();
-// Handler
-export const handler: Handler = async (event, context) => {
+
+export const handler: APIGatewayProxyHandlerV2 = async (event) => { 
   try {
-    console.log("Event: ", JSON.stringify(event));
-    const parameters = event?.queryStringParameters;
-    const gameId = parameters ? parseInt(parameters.gameId) : undefined;
+    console.log("[EVENT]", JSON.stringify(event));
+
+    
+    const parameters = event?.pathParameters;
+    const gameId = parameters?.gameId ? parseInt(parameters.gameId) : undefined;
 
     if (!gameId) {
       return {
@@ -17,7 +19,7 @@ export const handler: Handler = async (event, context) => {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ Message: "Missing game Id" }),
+        body: JSON.stringify({ message: "Missing or invalid gameId" }),
       };
     }
     const commandOutput = await ddbDocClient.send(
@@ -32,14 +34,14 @@ export const handler: Handler = async (event, context) => {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ Message: "Invalid game Id" }),
+        body: JSON.stringify({ message: "Game not found" }),
       };
     }
     const body = {
       data: commandOutput.Item,
     };
 
-    // Return Response
+    
     return {
       statusCode: 200,
       headers: {

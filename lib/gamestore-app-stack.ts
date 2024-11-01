@@ -7,6 +7,7 @@ import * as custom from "aws-cdk-lib/custom-resources";
 import { Construct } from "constructs";
 import { generateBatch } from "../shared/util";
 import { games, gameDevelopers } from "../seed/games";
+import * as apig from "aws-cdk-lib/aws-apigateway";
 
 export class GameStoreAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -140,5 +141,51 @@ export class GameStoreAppStack extends cdk.Stack {
 
     
     new cdk.CfnOutput(this, 'Get Game Developers Url', { value: getGameDevelopersURL.url });
+
+
+    const api = new apig.RestApi(this, "GameStoreAPI", {
+      description: "Game Store API",
+      deployOptions: {
+        stageName: "dev",
+      },
+      defaultCorsPreflightOptions: {
+        allowHeaders: ["Content-Type", "X-Amz-Date"],
+        allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
+        allowCredentials: true,
+        allowOrigins: ["*"],
+      },
+    });
+    
+    const gamesEndpoint = api.root.addResource("games");
+    gamesEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getAllGamesFn, { proxy: true })
+    );
+    
+    const gameEndpoint = gamesEndpoint.addResource("{gameId}");
+    gameEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getGameByIdFn, { proxy: true })
+    );
+    
+    const gameDevelopersEndpoint = gamesEndpoint.addResource("developers");
+    gameDevelopersEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getGameDevelopersFn, { proxy: true })
+    );
+    
+    new cdk.CfnOutput(this, "API Gateway URL", { value: api.url });
+
+    
+
+
+
+
+
+
+
+
+
+
   }
 }
