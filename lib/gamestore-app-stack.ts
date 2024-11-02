@@ -173,6 +173,8 @@ export class GameStoreAppStack extends cdk.Stack {
       "GET",
       new apig.LambdaIntegration(getGameDevelopersFn, { proxy: true })
     );
+
+    
     
     new cdk.CfnOutput(this, "GameStoreAPI Gateway URL", { value: api.url });
 
@@ -195,6 +197,26 @@ export class GameStoreAppStack extends cdk.Stack {
     gamesEndpoint.addMethod(
       "POST",
       new apig.LambdaIntegration(addGameFn, { proxy: true })
+    );
+
+
+    const deleteGameFn = new lambdanode.NodejsFunction(this, "DeleteGameFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/deleteGame.ts`, 
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: gamesTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+    gamesTable.grantWriteData(deleteGameFn);
+
+    gameEndpoint.addMethod( 
+      "DELETE",
+      new apig.LambdaIntegration(deleteGameFn, { proxy: true })
     );
 
     
