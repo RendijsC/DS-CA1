@@ -67,6 +67,12 @@ export const gameDevelopers: GameDeveloper[] = [
     roleDescription: "Legendary game designer known for Mario, Zelda, and Donkey Kong."
   },
   {
+    gameId: 1,
+    developerName: "Takashi Tezuka",
+    roleName: "Game Developer",
+    roleDescription: "Co-designer for Mario, known for his contributions to the early Mario and Zelda series."
+  },
+  {
     gameId: 2,
     developerName: "Shigeru Miyamoto",
     roleName: "Game Designer",
