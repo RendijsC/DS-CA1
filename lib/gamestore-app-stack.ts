@@ -9,6 +9,10 @@ import { generateBatch } from "../shared/util";
 import { games, gameDevelopers } from "../seed/games";
 import * as apig from "aws-cdk-lib/aws-apigateway";
 
+
+import * as iam from "aws-cdk-lib/aws-iam";
+
+
 export class GameStoreAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -35,6 +39,8 @@ export class GameStoreAppStack extends cdk.Stack {
       indexName: "roleIx",
       sortKey: { name: "roleName", type: dynamodb.AttributeType.STRING },
     });
+
+
 
     
     new custom.AwsCustomResource(this, "gamesddbInitData", {
@@ -71,7 +77,6 @@ export class GameStoreAppStack extends cdk.Stack {
     
     new cdk.CfnOutput(this, "GameStore Function Url", { value: gamestoreFnURL.url });
 
-    
     const getGameByIdFn = new lambdanode.NodejsFunction(this, "GetGameByIdFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -83,14 +88,19 @@ export class GameStoreAppStack extends cdk.Stack {
         REGION: 'eu-west-1',
       },
     });
-
+    
+    getGameByIdFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['translate:TranslateText'],
+      resources: ['*'],
+    }));
+    
+    gamesTable.grantReadData(getGameByIdFn);
+    
     const getGameByIdURL = getGameByIdFn.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: { allowedOrigins: ["*"] },
     });
-
-    gamesTable.grantReadData(getGameByIdFn);
-
+    
     
     new cdk.CfnOutput(this, "Get Game Function Url", { value: getGameByIdURL.url });
 
@@ -219,6 +229,38 @@ export class GameStoreAppStack extends cdk.Stack {
       new apig.LambdaIntegration(deleteGameFn, { proxy: true })
     );
 
+
+
+
+    
+
+    const translateFn = new lambdanode.NodejsFunction(this, "TranslateFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/translate.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        REGION: 'eu-west-1', 
+      },
+    });
+    
+    
+    translateFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['translate:TranslateText'],
+      resources: ['*'],
+    }));
+
+    const translateEndpoint = api.root.addResource("translate");
+    translateEndpoint.addMethod(
+      "POST",
+      new apig.LambdaIntegration(translateFn, { proxy: true })
+    );
+
+    
+
+    
+    
     
 
 
@@ -228,5 +270,11 @@ export class GameStoreAppStack extends cdk.Stack {
 
 
 
+    
+
+
+
+
   }
 }
+
