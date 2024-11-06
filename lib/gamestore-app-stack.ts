@@ -41,7 +41,6 @@ export class GameStoreAppStack extends cdk.Stack {
     });
 
 
-
     
     new custom.AwsCustomResource(this, "gamesddbInitData", {
       onCreate: {
@@ -230,10 +229,6 @@ export class GameStoreAppStack extends cdk.Stack {
     );
 
 
-
-
-    
-
     const translateFn = new lambdanode.NodejsFunction(this, "TranslateFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -256,6 +251,28 @@ export class GameStoreAppStack extends cdk.Stack {
       "POST",
       new apig.LambdaIntegration(translateFn, { proxy: true })
     );
+
+    const updateGameFn = new lambdanode.NodejsFunction(this, "UpdateGameFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/updateGame.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: gamesTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+    
+    gamesTable.grantReadWriteData(updateGameFn);
+    
+    gameEndpoint.addMethod(
+      "PUT",
+      new apig.LambdaIntegration(updateGameFn, { proxy: true })
+    );
+
+
+
 
     
 
