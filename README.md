@@ -10,9 +10,9 @@ State the context you chose for your web API and detail the attributes stored in
 
 This app is a gamestore which stores information on games and developers. 
 
-In the games table information like id, developer, release year, description, orginal language and orginal title are store
+In the games table information like id, developer, release year, description, orginal language and orginal title are stored
 
-In the developers tables information like game id whihc is the game they are associated to, developer name, role name, and role description.
+In the developers tables information like game id which is the game they are associated to, developer name, role name, and role description are stored.
 
 
 ### App API endpoints.
@@ -33,11 +33,14 @@ Only users who are signed in can update a game.
 
 ### Translation persistence (if relevant).
 
-[Briefly explain your design for the solution to avoid repeat requests to Amazon Translate - persist translations so that Amazon Translate can be bypassed for repeat translation requests.]
+A game is able to be translated and then saved to its own translation table which allows for persist translation. When translation is run on the game again it will retrieve the translation from the translation table.
 
 ###  Extra (If relevant).
 
-[ State whether you have created a multi-stack solution for this assignment or used lambda layers to speed up update deployments. Also, mention any aspect of the CDK framework __that was not covered in the lectures that you used in this assignment. ]
+Lambda Layers was utilized to speed up deployment. A common folder was created where re used code is stored and then called when need in lambdas.
 
-Translation was added which was not covered in the lab.
-A game is able to be translated which then is saved back to teh games table.
+authRequest is used to authenticate API request, this is reused in updateGame, deleteGame and addGame.
+
+ddbClient is used in all lambdas this create a DynamoDB document Client.
+
+errorResponse is used in all lambdas this provides consistent success and error response for lambdas. 
