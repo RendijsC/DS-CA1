@@ -2,11 +2,9 @@
 
 __Name:__ ....Rendijs Cielava .....
 
-__Demo:__ ... link to your YouTube video demonstration ......
+__Demo:__ ... https://youtu.be/vRQGSSX3jho ......
 
 ### Context.
-
-State the context you chose for your web API and detail the attributes stored in the main database table.
 
 This app is a gamestore which stores information on games and developers. 
 
@@ -37,10 +35,10 @@ A game is able to be translated and then saved to its own translation table whic
 
 ###  Extra (If relevant).
 
-Lambda Layers was utilized to speed up deployment. A common folder was created where re used code is stored and then called when need in lambdas.
+Lambda Layers was utilized to speed up deployment. A common folder was created where recycled code is stored and then called when needed in lambdas.
 
 authRequest is used to authenticate API request, this is reused in updateGame, deleteGame and addGame.
 
-ddbClient is used in all lambdas this create a DynamoDB document Client.
+ddbClient is used in all lambdas this create a DynamoDB Document Client.
 
 errorResponse is used in all lambdas this provides consistent success and error response for lambdas. 
