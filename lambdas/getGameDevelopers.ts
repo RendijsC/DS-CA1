@@ -7,11 +7,13 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
+import { createDDbDocClient } from "../common/ddbClient";
+import { createErrorResponse, createSuccessResponse } from "../common/errorResponse";
 
 const ajv = new Ajv();
 const isValidQueryParams = ajv.compile(schema.definitions["GameDeveloperQueryParams"] || {});
 
-const ddbDocClient = createDocumentClient();
+const ddbDocClient = createDDbDocClient(process.env.REGION!);
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
@@ -84,31 +86,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
     const commandOutput = await ddbDocClient.send(new QueryCommand(commandInput));
 
-    return {
-      statusCode: 200,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ data: commandOutput.Items }),
-    };
+    return createSuccessResponse(commandOutput.Items, "Query executed successfully");
   } catch (error: any) {
-    console.error("Error processing request:", JSON.stringify(error));
-    return {
-      statusCode: 500,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ error: error.message }),
-    };
+    return createErrorResponse(error, "Error processing request");
   }
 };
-
-function createDocumentClient() {
-  const ddbClient = new DynamoDBClient({ region: process.env.REGION });
-  return DynamoDBDocumentClient.from(ddbClient, {
-    marshallOptions: {
-      convertEmptyValues: true,
-      removeUndefinedValues: true,
-      convertClassInstanceToMap: true,
-    },
-    unmarshallOptions: { wrapNumbers: false },
-  });
-}
 
 

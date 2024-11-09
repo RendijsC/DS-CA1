@@ -8,19 +8,28 @@ __Demo:__ ... link to your YouTube video demonstration ......
 
 State the context you chose for your web API and detail the attributes stored in the main database table.
 
+This app is a gamestore which stores information on games and developers. 
+
+In the games table information like id, developer, release year, description, orginal language and orginal title are store
+
+In the developers tables information like game id whihc is the game they are associated to, developer name, role name, and role description.
+
+
 ### App API endpoints.
 
-[ Provide a bullet-point list of the app's endpoints (excluding the Auth API) you have successfully implemented. ]
-e.g.
- 
-+ POST /thing - add a new 'thing'.
-+ GET /thing/{partition-key}/ - Get all the 'things' with a specified partition key.
-+ GEtT/thing/{partition-key}?attributeX=value - Get all the 'things' with a specified partition key value and attributeX satisfying the condition .....
+GET /games - Retrieve all games.
+GET /games/{gameId} - Retrieve a specific game by its ID.
+POST /games - Add a new game.
+PUT /games/{gameId} - Update a specific game by its ID.
+DELETE /games/{gameId} - Delete a specific game by its ID.
+GET /games/developers?{gameId} - Retrieve all game developers.
+Get /games/developers?gameId={gameId}&developerName= - Retrieve specific developer from game.
+Get /games/developers?gameId={gameId}&roleName= - Retrive developer from game based of role.
+POST /games/{gameId}/translate - Translate and update a game's fields to a specified language.
 
 ### Update constraint (if relevant).
 
-[Briefly explain your design for the solution to the PUT/Update constraint 
-- only the user who added an item to the main table could update it.]
+Only users who are signed in can update a game.
 
 ### Translation persistence (if relevant).
 
@@ -29,3 +38,6 @@ e.g.
 ###  Extra (If relevant).
 
 [ State whether you have created a multi-stack solution for this assignment or used lambda layers to speed up update deployments. Also, mention any aspect of the CDK framework __that was not covered in the lectures that you used in this assignment. ]
+
+Translation was added which was not covered in the lab.
+A game is able to be translated which then is saved back to teh games table.

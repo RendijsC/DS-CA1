@@ -4,36 +4,45 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 import { CookieMap, createPolicy, JwtToken, parseCookies, verifyToken } from "../shared/util";
+import { createDDbDocClient } from "../common/ddbClient";
+import { createErrorResponse, createSuccessResponse } from "../common/errorResponse";
+import { authenticateRequest } from "../common/authRequest";
+
+
+const ddbDocClient = createDDbDocClient(process.env.REGION!);
 
 const ajv = new Ajv();
 const isValidBodyParams = ajv.compile(schema.definitions["Game"] || {});
-
-const ddbDocClient = createDDbDocClient();
 
 export const handler: APIGatewayProxyHandlerV2 = async function (event:any) {
   try {
     
     console.log("[EVENT]", JSON.stringify(event));
 
-    const cookies: CookieMap = parseCookies(event);
-  if (!cookies) {
-    return {
-      statusCode: 200,
-      body: "Unauthorised request!!",
-    };
-  }
+  //  const cookies: CookieMap = parseCookies(event);
+  // if (!cookies) {
+  //   return {
+  //     statusCode: 200,
+  //     body: "Unauthorised request!!",
+  //   };
+  // }
 
-  const verifiedJwt: JwtToken = await verifyToken(
-    cookies.token,
-    process.env.USER_POOL_ID,
-    process.env.REGION!
-  );
+  // const verifiedJwt: JwtToken = await verifyToken(
+  //   cookies.token,
+  //   process.env.USER_POOL_ID,
+  //   process.env.REGION!
+  // );
 
-  if (!verifiedJwt) {
-    return {
-      statusCode: 403,
-      body: "Forbidden: invalid token" ,
-    };
+  // if (!verifiedJwt) {
+  //   return {
+  //     statusCode: 403,
+  //     body: "Forbidden: invalid token" ,
+  //   };
+  // }
+
+  const authResult = await authenticateRequest(event, process.env.USER_POOL_ID!, process.env.REGION!);
+  if (!authResult.isAuthorized) {
+    return authResult.response;
   }
 
 
@@ -67,35 +76,9 @@ export const handler: APIGatewayProxyHandlerV2 = async function (event:any) {
         Item: body,
       })
     );
-    return {
-      statusCode: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ message: "Game added" }),
-    };
+
+    return createSuccessResponse({ message: "Game added" }, "Created");
   } catch (error: any) {
-    console.log(JSON.stringify(error));
-    return {
-      statusCode: 500,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ error }),
-    };
+    return createErrorResponse(error, "Error adding game");
   }
 };
-
-function createDDbDocClient() {
-  const ddbClient = new DynamoDBClient({ region: process.env.REGION });
-  const marshallOptions = {
-    convertEmptyValues: true,
-    removeUndefinedValues: true,
-    convertClassInstanceToMap: true,
-  };
-  const unmarshallOptions = {
-    wrapNumbers: false,
-  };
-  const translateConfig = { marshallOptions, unmarshallOptions };
-  return DynamoDBDocumentClient.from(ddbClient, translateConfig);
-}

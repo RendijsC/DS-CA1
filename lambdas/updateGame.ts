@@ -1,44 +1,23 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 import { CookieMap, createPolicy, JwtToken, parseCookies, verifyToken } from "../shared/util";
-const ddbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.REGION }));
+import { createDDbDocClient } from "../common/ddbClient";
+import { createErrorResponse, createSuccessResponse } from "../common/errorResponse";
+import { authenticateRequest } from "../common/authRequest";
+
+const ddbDocClient = createDDbDocClient(process.env.REGION!);
+
 const ajv = new Ajv();
-const isValidBodyParams = ajv.compile({
-  ...schema.definitions["Game"],
-  required: schema.definitions["Game"].required.filter((prop: string) => prop !== "id"),
-});
+const isValidBodyParams = ajv.compile(schema.definitions["Game"]);
 
 export const handler: APIGatewayProxyHandlerV2 = async function (event:any) {
 
-
-
-    const cookies: CookieMap = parseCookies(event);
-  if (!cookies) {
-    return {
-      statusCode: 200,
-      body: "Unauthorised request!!",
-    };
+  const authResult = await authenticateRequest(event, process.env.USER_POOL_ID!, process.env.REGION!);
+  if (!authResult.isAuthorized) {
+    return authResult.response;
   }
-
-  const verifiedJwt: JwtToken = await verifyToken(
-    cookies.token,
-    process.env.USER_POOL_ID,
-    process.env.REGION!
-  );
-
-  if (!verifiedJwt) {
-    return {
-      statusCode: 403,
-      body: "Forbidden: invalid token" ,
-    };
-  }
-
-
-
-
 
   const gameId = event.pathParameters?.gameId;
 
@@ -80,21 +59,9 @@ export const handler: APIGatewayProxyHandlerV2 = async function (event:any) {
 
   try {
     const result = await ddbDocClient.send(new UpdateCommand(params));
-    return {
-      statusCode: 200,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        message: "Game updated successfully",
-        game: result.Attributes,
-      }),
-    };
+    return createSuccessResponse(result.Attributes, "Game updated successfully");
   } catch (error) {
-    console.error("Error updating game:", error);
-    return {
-      statusCode: 500,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ error: (error as Error).message }),
-    };
+    return createErrorResponse(error, "Error updating game");
   }
 };
 

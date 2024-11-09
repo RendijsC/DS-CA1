@@ -66,6 +66,17 @@ export class AppApi extends Construct {
       sortKey: { name: "roleName", type: dynamodb.AttributeType.STRING },
     });
 
+    const translationTable = new dynamodb.Table(this, "TranslationTable", {
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      partitionKey: { name: "gameId", type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: "language", type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      tableName: "TranslationTable",
+    });
+
+    
+
+
     // Initialize data in DynamoDB tables
     new custom.AwsCustomResource(this, "gamesddbInitData", {
       onCreate: {
@@ -96,11 +107,6 @@ export class AppApi extends Construct {
         REGION: 'eu-west-1',
       },
     });
-
-    getGameByIdFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['translate:TranslateText'],
-      resources: ['*'],
-    }));
 
     gamesTable.grantReadData(getGameByIdFn);
 
@@ -216,19 +222,19 @@ export class AppApi extends Construct {
     );
 
     const translateGameFn = new lambdanode.NodejsFunction(this, "TranslateGameFn", {
-      architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_18_X,
       entry: `${__dirname}/../lambdas/translate.ts`,
-      timeout: cdk.Duration.seconds(10),
-      memorySize: 128,
+      runtime: lambda.Runtime.NODEJS_18_X,
       environment: {
-        TABLE_NAME: gamesTable.tableName,
-        REGION: "eu-west-1",
+        TRANSLATION_TABLE_NAME: translationTable.tableName,
+        GAMES_TABLE_NAME: gamesTable.tableName,
+        REGION: 'eu-west-1',
       },
     });
-
+    
+    translationTable.grantReadWriteData(translateGameFn);
+    
     translateGameFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['translate:TranslateText', 'dynamodb:GetItem', 'dynamodb:UpdateItem'],
+      actions: ['translate:TranslateText', 'dynamodb:GetItem', 'dynamodb:PutItem'],
       resources: ['*'],
     }));
 

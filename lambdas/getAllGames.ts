@@ -1,8 +1,11 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { createDDbDocClient } from "../common/ddbClient";
+import { createErrorResponse, createSuccessResponse } from "../common/errorResponse";
 
-const ddbDocClient = createDDbDocClient();
+const ddbDocClient = createDDbDocClient(process.env.REGION!);
+
 
 export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { 
   try {
@@ -28,35 +31,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     };
 
     
-    return {
-      statusCode: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    };
+    return createSuccessResponse(commandOutput.Items, "Items retrieved successfully");
   } catch (error: any) {
-    console.log(JSON.stringify(error));
-    return {
-      statusCode: 500,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ error }),
-    };
+    return createErrorResponse(error, "Error fetching data");
   }
 };
-
-function createDDbDocClient() {
-  const ddbClient = new DynamoDBClient({ region: process.env.REGION });
-  const marshallOptions = {
-    convertEmptyValues: true,
-    removeUndefinedValues: true,
-    convertClassInstanceToMap: true,
-  };
-  const unmarshallOptions = {
-    wrapNumbers: false,
-  };
-  const translateConfig = { marshallOptions, unmarshallOptions };
-  return DynamoDBDocumentClient.from(ddbClient, translateConfig);
-}
