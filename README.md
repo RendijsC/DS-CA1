@@ -15,15 +15,15 @@ In the developers tables information like game id which is the game they are ass
 
 ### App API endpoints.
 
-GET /games - Retrieve all games.
-GET /games/{gameId} - Retrieve a specific game by its ID.
-POST /games - Add a new game.
-PUT /games/{gameId} - Update a specific game by its ID.
-DELETE /games/{gameId} - Delete a specific game by its ID.
-GET /games/developers?{gameId} - Retrieve all game developers.
-Get /games/developers?gameId={gameId}&developerName= - Retrieve specific developer from game.
-Get /games/developers?gameId={gameId}&roleName= - Retrive developer from game based of role.
-POST /games/{gameId}/translate - Translate and update a game's fields to a specified language.
+- **GET /games** - Retrieve all games.
+- **GET /games/{gameId}** - Retrieve a specific game by its ID.
+- **POST /games** - Add a new game.
+- **PUT /games/{gameId}** - Update a specific game by its ID.
+- **DELETE /games/{gameId}** - Delete a specific game by its ID.
+- **GET /games/developers**?{gameId} - Retrieve all game developers.
+- **GET /games/developers?gameId={gameId}&developerName=** - Retrieve a specific developer from a game.
+- **GET /games/developers?gameId={gameId}&roleName=** - Retrieve a developer from a game based on their role.
+- **POST /games/{gameId}/translate** - Translate and update a game's fields to a specified language.
 
 ### Update constraint (if relevant).
 
